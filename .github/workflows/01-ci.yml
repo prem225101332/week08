@@ -5,13 +5,11 @@ on:
   push:
     branches:
       - main
-  
+
   # Manual trigger for the workflow
   workflow_dispatch:
 
-
 jobs:
-
   # =========================================================
   # Backend Tests
   # =========================================================
@@ -81,7 +79,6 @@ jobs:
       AZURE_STORAGE_CONTAINER_NAME: ""
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -101,6 +98,50 @@ jobs:
         run: |
           pytest -v
 
+  # =========================================================
+  # Terraform Validate and Plan
+  # =========================================================
+  terraform:
+    name: Terraform Validate and Plan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Terraform Format Check
+        working-directory: terraform
+        run: terraform fmt -check
+
+      - name: Terraform Init
+        working-directory: terraform
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: terraform
+        run: terraform validate
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      - name: Terraform Plan
+        working-directory: terraform
+        env:
+          TF_VAR_location: "Australia East"
+          TF_VAR_resource_group_name: ${{ vars.AKS_RESOURCE_GROUP }}
+          TF_VAR_acr_name: ${{ vars.ACR_NAME }}
+          TF_VAR_storage_account_name: "premweek08storage"
+          TF_VAR_aks_cluster_name: ${{ vars.AKS_CLUSTER_NAME }}
+          TF_VAR_node_count: "3"
+          TF_VAR_environment: "week08"
+          TF_VAR_tags: '{"Project":"KoalaTech Course Platform","ManagedBy":"Terraform","Practical":"Week08","Environment":"Week08"}'
+        run: |
+          terraform plan -input=false -lock=false
 
   # =========================================================
   # Build and Push Docker Images
@@ -112,6 +153,7 @@ jobs:
     # All backend tests must pass before this job starts
     needs:
       - backend-test
+      - terraform
 
     # Build and push when code is pushed to main or manually triggered
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
@@ -140,7 +182,6 @@ jobs:
             image: koalatech-enrollment-service
 
     steps:
-
       - name: Checkout repository
         uses: actions/checkout@v4
 
