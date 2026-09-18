@@ -149,3 +149,16 @@ jobs:
           kubectl get pods -n staging
           kubectl get services -n staging
           kubectl get pvc -n staging
+
+      - name: Verify Prometheus and Grafana monitoring
+        run: |
+          kubectl get pods -n monitoring
+          kubectl get services -n monitoring
+          kubectl wait --for=condition=Ready pod \
+            -l app.kubernetes.io/name=grafana \
+            -n monitoring \
+            --timeout=180s
+          kubectl wait --for=condition=Ready pod \
+            -l app.kubernetes.io/name=prometheus \
+            -n monitoring \
+            --timeout=180s
