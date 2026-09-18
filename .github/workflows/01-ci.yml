@@ -207,6 +207,9 @@ jobs:
             ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.image }}:${{ github.sha }}
       - name: Docker Scout vulnerability scan
         uses: docker/scout-action@v1
+        env:
+          DOCKER_SCOUT_HUB_USER: ${{ secrets.DOCKER_SCOUT_HUB_USER }}
+          DOCKER_SCOUT_HUB_PASSWORD: ${{ secrets.DOCKER_SCOUT_HUB_PASSWORD }}
         with:
           command: cves
           image: ${{ vars.ACR_LOGIN_SERVER }}/${{ matrix.image }}:${{ github.sha }}
